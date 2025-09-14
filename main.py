@@ -4,6 +4,8 @@ import numpy as np
 ### a function to create a unique increasing ID
 ### note that this is just a quick-and-easy way to create a global order
 ### it's not the only way to do it
+# 1.3, 1.5, 2.3, 2.6
+
 global_order_counter = 0
 def get_next_order():
     global global_order_counter
@@ -70,7 +72,6 @@ class BackproppableArray(object):
                     result_List.append(dependency)
                     visited.append(dependency)
         return result_List
-        pass
 
     # compute gradients of this array with respect to everything it depends on
     def backward(self):
@@ -82,11 +83,20 @@ class BackproppableArray(object):
 
         # TODO: (1.2) implement the backward pass to compute the gradients
         #   this should do the following
-        #   (1) sort the found dependencies so that the ones computed last go FIRST
+        #   (1) sort the found dependencies so that the ones computed last go FIRST:
+        #   dependencies with larger order go first
+        sorted_dependencies = sorted(all_my_dependencies, key=lambda dep: dep.order, reverse = True)
         #   (2) initialize and zero out all the gradient accumulators (.grad) for all the dependencies
+        for dep in sorted_dependencies:
+            dep.grad = np.zeros_like(dep.data)
         #   (3) set the gradient accumulator of this array to 1, as an initial condition
         #           since the gradient of a number with respect to itself is 1
+        #   gradient of last is 1
+        self.grad = np.ones_like(self.data)
         #   (4) call the grad_fn function for all the dependencies in the sorted reverse order
+        for dep in sorted_dependencies:
+            dep.grad_fn()
+
 
     # function that is called to process a single step of backprop for this array
     # when called, it must be the case that self.grad contains the gradient of the loss (the
@@ -148,15 +158,17 @@ class BA_Add(BackproppableArray):
 
 # a class for an array that's the result of a subtraction operation
 class BA_Sub(BackproppableArray):
-    # x + y
+    # x - y
     def __init__(self, x, y):
         super().__init__(x.data - y.data, [x,y])
         self.x = x
         self.y = y
 
     def grad_fn(self):
+        # ME
         # TODO: (1.3, 2.3) implement grad fn for Sub
-        pass
+        self.x.grad += self.grad
+        self.y.grad -= self.grad
 
 # a class for an array that's the result of a multiplication operation
 class BA_Mul(BackproppableArray):
@@ -168,7 +180,9 @@ class BA_Mul(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (1.3, 2.3) implement grad fn for Mul
-        pass
+        # 1.3: assume self.x, self.y are scalars, else @
+        self.x.grad += self.grad * self.y.data
+        self.y.grad += self.grad * self.x.data
 
 # a class for an array that's the result of a division operation
 class BA_Div(BackproppableArray):
@@ -180,8 +194,8 @@ class BA_Div(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (1.3, 2.3) implement grad fn for Div
-        pass
-
+        self.x.grad += self.grad / self.y.data
+        self.y.grad -= (self.grad * self.x.data) / (self.y.data ** 2)
 
 # a class for an array that's the result of a matrix multiplication operation
 class BA_MatMul(BackproppableArray):
@@ -201,14 +215,14 @@ class BA_MatMul(BackproppableArray):
 
 # a class for an array that's the result of an exponential operation
 class BA_Exp(BackproppableArray):
-    # exp(x)
+    # exp(x) = e^x
     def __init__(self, x):
         super().__init__(np.exp(x.data), [x])
         self.x = x
 
     def grad_fn(self):
         # TODO: (1.3) implement grad fn for Exp
-        pass
+        self.x.grad += self.grad * exp(self.x.data)
 
 def exp(x):
     if isinstance(x, BackproppableArray):
@@ -225,7 +239,7 @@ class BA_Log(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (1.3) implement grad fn for Log
-        pass
+        self.x.grad += self.grad / self.x.data
 
 def log(x):
     if isinstance(x, BackproppableArray):
@@ -302,7 +316,7 @@ class TestFxs(object):
     @staticmethod
     def df1dx(x):
         # TODO (1.4) implement symbolic derivative of f1
-        pass
+        return 2
 
     @staticmethod
     def f2(x):
@@ -311,7 +325,7 @@ class TestFxs(object):
     @staticmethod
     def df2dx(x):
         # TODO (1.4) implement symbolic derivative of f2
-        pass
+        return 2 * x
 
     @staticmethod
     def f3(x):
@@ -321,7 +335,9 @@ class TestFxs(object):
     @staticmethod
     def df3dx(x):
         # TODO (1.4) implement symbolic derivative of f3
-        pass
+        u = (x - 2.0)
+        du = (u * u + 1)
+        return (du - (2 * u * u)) / (du * du)
 
     @staticmethod
     def f4(x):
@@ -356,4 +372,32 @@ class TestFxs(object):
 
 if __name__ == "__main__":
     # TODO: Test your code using the provided test functions and your own functions
-    pass
+    # 1.5:
+    xs = [0.5, 1.0, 2.5]
+
+    for x in xs:
+        print(f"\n=== At x = {x} ===")
+
+        # f1
+        sym = TestFxs.df1dx(x)
+        num = numerical_diff(TestFxs.f1, x)
+        auto = backprop_diff(TestFxs.f1, x)
+        print("f1: symbolic =", sym, " numerical =", num, " autodiff =", auto)
+
+        # f2
+        sym = TestFxs.df2dx(x)
+        num = numerical_diff(TestFxs.f2, x)
+        auto = backprop_diff(TestFxs.f2, x)
+        print("f2: symbolic =", sym, " numerical =", num, " autodiff =", auto)
+
+        # f3
+        sym = TestFxs.df3dx(x)
+        num = numerical_diff(TestFxs.f3, x)
+        auto = backprop_diff(TestFxs.f3, x)
+        print("f3: symbolic =", sym, " numerical =", num, " autodiff =", auto)
+
+        # f4 (no symbolic derivative)
+        num = numerical_diff(TestFxs.f4, x)
+        auto = backprop_diff(TestFxs.f4, x)
+        print("f4: numerical =", num, " autodiff =", auto)
+
