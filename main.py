@@ -129,6 +129,11 @@ class BackproppableArray(object):
         return BA_Div(to_ba(other), self)
 
     # TODO (2.2) Add operator overloading for matrix multiplication
+    def __matmul__(self, other):
+        return BA_MatMul(self, to_ba(other))
+    def __rmatmul__(self, other):
+        return BA_MatMul(to_ba(other), self)
+
 
     def sum(self, axis=None, keepdims=True):
         return BA_Sum(self, axis)
@@ -142,6 +147,14 @@ class BackproppableArray(object):
         return BA_Transpose(self, axes)
 
 # TODO: implement any helper functions you'll need to backprop through vectors
+def unbroadcast(grad, shape):    
+    while len(grad.shape) > len(shape):
+        grad = grad.sum(axis=0, keepdims=False)
+    for i, dim in enumerate(shape):
+        if dim == 1:
+            grad = grad.sum(axis=i, keepdims=True)
+    return grad
+
 
 # a class for an array that's the result of an addition operation
 class BA_Add(BackproppableArray):
@@ -153,8 +166,10 @@ class BA_Add(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (2.3) improve grad fn for Add
-        self.x.grad += self.grad
-        self.y.grad += self.grad
+        # self.x.grad += self.grad
+        # self.y.grad += self.grad
+        self.x.grad += unbroadcast(self.grad, self.x.data.shape)
+        self.y.grad += unbroadcast(self.grad, self.y.data.shape)
 
 # a class for an array that's the result of a subtraction operation
 class BA_Sub(BackproppableArray):
@@ -167,8 +182,10 @@ class BA_Sub(BackproppableArray):
     def grad_fn(self):
         # ME
         # TODO: (1.3, 2.3) implement grad fn for Sub
-        self.x.grad += self.grad
-        self.y.grad -= self.grad
+        # self.x.grad += self.grad
+        # self.y.grad -= self.grad
+        self.x.grad += unbroadcast(self.grad, self.x.data.shape)
+        self.y.grad += unbroadcast(-self.grad, self.y.data.shape)
 
 # a class for an array that's the result of a multiplication operation
 class BA_Mul(BackproppableArray):
@@ -181,8 +198,10 @@ class BA_Mul(BackproppableArray):
     def grad_fn(self):
         # TODO: (1.3, 2.3) implement grad fn for Mul
         # 1.3: assume self.x, self.y are scalars, else @
-        self.x.grad += self.grad * self.y.data
-        self.y.grad += self.grad * self.x.data
+        # self.x.grad += self.grad * self.y.data
+        # self.y.grad += self.grad * self.x.data
+        self.x.grad += unbroadcast(self.grad * self.y.data, self.x.data.shape)
+        self.y.grad += unbroadcast(self.grad * self.x.data, self.y.data.shape)
 
 # a class for an array that's the result of a division operation
 class BA_Div(BackproppableArray):
@@ -194,8 +213,10 @@ class BA_Div(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (1.3, 2.3) implement grad fn for Div
-        self.x.grad += self.grad / self.y.data
-        self.y.grad -= (self.grad * self.x.data) / (self.y.data ** 2)
+        # self.x.grad += self.grad / self.y.data
+        # self.y.grad -= (self.grad * self.x.data) / (self.y.data ** 2)
+        self.x.grad += unbroadcast(self.grad / self.y.data, self.x.data.shape)
+        self.y.grad += unbroadcast(-(self.grad * self.x.data) / (self.y.data ** 2), self.y.data.shape)
 
 # a class for an array that's the result of a matrix multiplication operation
 class BA_MatMul(BackproppableArray):
@@ -210,7 +231,8 @@ class BA_MatMul(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (2.1) implement grad fn for MatMul
-        pass
+        self.x.grad += self.grad @ self.y.data.T
+        self.y.grad += self.x.data.T @ self.grad
 
 
 # a class for an array that's the result of an exponential operation
@@ -260,7 +282,7 @@ class BA_Sum(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (2.1) implement grad fn for Sum
-        pass
+        self.x.grad += np.ones_like(self.x.data) * self.grad
 
 # a class for an array that's the result of a reshape operation
 class BA_Reshape(BackproppableArray):
@@ -272,7 +294,7 @@ class BA_Reshape(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (2.1) implement grad fn for Reshape
-        pass
+        self.x.grad += self.grad.reshape(self.x.data.shape)
 
 # a class for an array that's the result of a transpose operation
 class BA_Transpose(BackproppableArray):
@@ -284,7 +306,8 @@ class BA_Transpose(BackproppableArray):
 
     def grad_fn(self):
         # TODO: (2.1) implement grad fn for Transpose
-        pass
+        inv_axes = np.argsort(self.axes)
+        self.x.grad += self.grad.transpose(tuple(inv_axes))
 
 
 # numerical derivative of scalar function f at x, using tolerance eps
@@ -295,7 +318,25 @@ def numerical_grad(f, x, eps=1e-5):
     # TODO: (2.5) implement numerical gradient function
     #       this should compute the gradient by applying something like
     #       numerical_diff independently for each entry of the input x
-    pass
+    x = np.array(x, dtype=float)
+    grad = np.zeros_like(x)
+    original_shape = x.shape
+    it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+    while not it.finished:
+        idx = it.multi_index
+        original_val = x[idx]
+        
+        x[idx] = original_val + eps
+        f_plus = float(np.array(f(x.reshape(original_shape))).item())
+        
+        x[idx] = original_val - eps
+        f_minus = float(np.array(f(x.reshape(original_shape))).item())
+        
+        x[idx] = original_val
+        grad[idx] = (f_plus - f_minus) / (2 * eps)
+        it.iternext()
+    
+    return grad
 
 # automatic derivative of scalar function f at x, using backprop
 def backprop_diff(f, x):
@@ -401,3 +442,15 @@ if __name__ == "__main__":
         auto = backprop_diff(TestFxs.f4, x)
         print("f4: numerical =", num, " autodiff =", auto)
 
+    # === Part 2.4 tests: g1 and g2 ===
+    print("\n=== Testing g1 ===")
+    x_g1 = 0.5
+    num_g1 = numerical_diff(TestFxs.g1, x_g1)
+    auto_g1 = backprop_diff(TestFxs.g1, x_g1)
+    print("g1: numerical =", num_g1, " autodiff =", auto_g1)
+
+    print("\n=== Testing g2 ===")
+    x_g2 = 0.5
+    num_g2 = numerical_diff(TestFxs.g2, x_g2)
+    auto_g2 = backprop_diff(TestFxs.g2, x_g2)
+    print("g2: numerical =", num_g2, " autodiff =", auto_g2)
