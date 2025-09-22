@@ -3,40 +3,40 @@
 ## 1.5
 
 ### Testing Method
-To test the implementation of automatic differentation given scalar inputs, I compared the results of symbolic, numercial, and automatic differentiation on functions $f_1, f_2$ and $f_3$ on the inputs $xs = [0.5, 1.0, 2.5]$. I also compared the results of numerical and automatic differention on function $f_4$ on the same scalar inputs $xs = [0.5, 1.0, 2.5]$. 
+To test the implementation of automatic differentation given scalar inputs, I compared the results of symbolic, numercial, and automatic differentiation on functions f_1, f_2 and f_3 on the inputs xs = [0.5, 1.0, 2.5]. I also compared the results of numerical and automatic differentiation on function f_4 on the same scalar inputs xs = [0.5, 1.0, 2.5]. 
 
-Specifically for symbolic differentiation, I used the previously implemented derivatives ```df1dx, df2dx``` and ```df3dx``` for functions $f_1, f_2$ and $f_3$, respectively. For getting the numerical derivative, I ran the given method ```numerical_diff```.
+Specifically for symbolic differentiation, I used the previously implemented derivatives df1dx, df2dx and df3dx for functions f_1, f_2 and f_3, respectively. For getting the numerical derivative, I ran the given method numerical_diff.
 
 ### Results
 
 ===== At x = 0.5 =====
 |            | symbolic | numerical | automatic |
 | ---------- | -------- | --------- | --------- | 
-| $\frac{df_1}{dx}$ | 2 | 2.0000000000131024 | 2.0 |
-| $\frac{df_2}{dx}$ | 1.0 | 0.9999999999982244 | 1.0 |
-| $\frac{df_3}{dx}$ |  -0.11834319526627218 | -0.11834319526005109 | -0.11834319526627218 |
-| $\frac{df_4}{dx}$ |  | -2.804687464652566 | -2.8046874646640316 |
+| df_1/dx | 2 | 2.0000000000131024 | 2.0 |
+| df_2/dx | 1.0 | 0.9999999999982244 | 1.0 |
+| df_3/dx |  -0.11834319526627218 | -0.11834319526005109 | -0.11834319526627218 |
+| df_4/dx |  | -2.804687464652566 | -2.8046874646640316 |
 
 ===== At x = 1.0 =====
 
 |            | symbolic | numerical | automatic |
 | ---------- | -------- | --------- | --------- | 
-| $\frac{df_1}{dx}$ | 2 | 2.0000000000131024 | 2.0 |
-| $\frac{df_2}{dx}$ | 2.0 | 2.000000000002 | 2.0 |
-| $\frac{df_3}{dx}$ | 0.0  | 2.775557561562891e-11 | 0.0 |
-| $\frac{df_4}{dx}$ |  | -2.3499102726587395 | -2.3499102727038075
+| df_1/dx | 2 | 2.0000000000131024 | 2.0 |
+| df_2/dx | 2.0 | 2.000000000002 | 2.0 |
+| df_3/dx | 0.0  | 2.775557561562891e-11 | 0.0 |
+| df_4/dx |  | -2.3499102726587395 | -2.3499102727038075
 
 ===== At x = 2.5 =====
 
 |            | symbolic | numerical | automatic |
 | ---------- | -------- | --------- | --------- | 
-| $\frac{df_1}{dx}$ | 2 | 1.9999999999686933 | 2.0 |
-| $\frac{df_2}{dx}$ | 5.0 | 5.000000000032756  | 5.0 |
-| $\frac{df_3}{dx}$ | 0.48 | 0.4800000000193538 | 0.48
-| $\frac{df_4}{dx}$ |  | 0.214305259155223 | 0.2143052591764773
+| df_1/dx | 2 | 1.9999999999686933 | 2.0 |
+| df_2/dx | 5.0 | 5.000000000032756  | 5.0 |
+| df_3/dx | 0.48 | 0.4800000000193538 | 0.48
+| df_4/dx|  | 0.214305259155223 | 0.2143052591764773
 
 ### Observations
-Given some $x$ in test inputs $xs$, I observed that while the results of numerical differentiation were slightly off by < $10^{-8}$ from the outputs of symbolic and automatic differentiation, symbolic and automatic differentiation results were exactly identical. Since this difference is negligible, I concluded that the implementation of backpropogation and automatic differentiation is correct for scalar inputs.
+Given some $x$ in test inputs $xs$, I observed that while the results of numerical differentiation were slightly off by < (10e-8) from the outputs of symbolic and automatic differentiation, symbolic and automatic differentiation results were exactly identical. Since this difference is negligible, I concluded that the implementation of backpropogation and automatic differentiation is correct for scalar inputs.
 
 
 ## 2.3
@@ -92,3 +92,9 @@ From the results, we observe that, except for the last value in the array, all o
 
 ## 2.7
 From the results, we find that the time elapsed for automatic differentiation is around 0.09 ms, whereas for numerical differentiation it is around 11.16 ms, which is more than 100 times longer. Therefore, the backprop differentiation is much faster than numerical differentiation.
+
+## Summary
+While implementing automatic differentiation for function that take and in and output both scalars and multi-dimensional values, we noticed that differentiations in scalars is much more straight forward than for multi-dimensional.
+For multi-dimensional values, we also need to guarantee that the input and output dimensions after calculating gradients remain the same. For scalar differentiation, we know that the derivative output will also be a scalar. However, after calculating gradients given multi-dimensional inputs, we need to broadcast the output back to the input dimensions.
+
+Given arbitrary dimensional inputs and functions, we noticed that when comparing the results of symbolic, numerical, and automatic differentiation during testing, that symbolic and automatic differentiation would have identical results, while numerical differentiation sees very negligble difference. This is because, given some function f, numerical differentiation is an estimate of the actual gradient df/dx. Specifically, the first order Taylor approximation: $$ \frac{df}{dx} = \lim_{h \rightarrow 0} \frac{f(x+h)-f(x)}{h},$$ assuming local linearity when pertubation $h \rightarrow 0$. On the other hand, symbolic and automatic differentiation are the actual results of df/dx.
