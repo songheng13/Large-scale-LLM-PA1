@@ -1,5 +1,6 @@
 
 import numpy as np
+import time
 
 ### a function to create a unique increasing ID
 ### note that this is just a quick-and-easy way to create a global order
@@ -318,24 +319,14 @@ def numerical_grad(f, x, eps=1e-5):
     # TODO: (2.5) implement numerical gradient function
     #       this should compute the gradient by applying something like
     #       numerical_diff independently for each entry of the input x
-    x = np.array(x, dtype=float)
-    grad = np.zeros_like(x)
-    original_shape = x.shape
-    it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
-    while not it.finished:
-        idx = it.multi_index
-        original_val = x[idx]
-        
-        x[idx] = original_val + eps
-        f_plus = float(np.array(f(x.reshape(original_shape))).item())
-        
-        x[idx] = original_val - eps
-        f_minus = float(np.array(f(x.reshape(original_shape))).item())
-        
-        x[idx] = original_val
-        grad[idx] = (f_plus - f_minus) / (2 * eps)
-        it.iternext()
-    
+    n = x.shape[0]
+    grad = np.zeros(n)
+    for i in range(n):
+        x_pos = x.copy()
+        x_neg = x.copy()
+        x_pos[i] += eps
+        x_neg[i] -= eps
+        grad[i] = (f(x_pos) - f(x_neg))/(2*eps)
     return grad
 
 # automatic derivative of scalar function f at x, using backprop
@@ -408,6 +399,11 @@ class TestFxs(object):
         return (xb * xb).sum().reshape(())
 
     # TODO: Add any other test functions you want to use here
+    @staticmethod
+    def h2(x):  # takes an input of shape (1000,)
+        b = np.arange(1000,dtype="float64")
+        xb = x * b
+        return (xb * b).sum().reshape(())
     # END TODO
 
 
@@ -454,3 +450,24 @@ if __name__ == "__main__":
     num_g2 = numerical_diff(TestFxs.g2, x_g2)
     auto_g2 = backprop_diff(TestFxs.g2, x_g2)
     print("g2: numerical =", num_g2, " autodiff =", auto_g2)
+    
+    # === Part 2.6 tests: h1 on numerical_grad and backprop_diff ===
+    print("\n=== 2.6: Output Comparison between numerical_grad and backprop_diff===")
+    t1 = TestFxs()
+    x_h1 = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    print("numerical:", numerical_grad(t1.h1, x_h1))
+    print("backprop:", backprop_diff(t1.h1, x_h1))
+    
+    # === Part 2.7 tests: speed comparison between numerical_grad and backprop_diff ===
+    print("\n=== 2.7: Speed comparison between numerical_grad and backprop_diff===")
+    t2 = TestFxs()
+    x_h2 = np.random.rand(1000, )
+    begin = time.time()
+    numerical_grad(t2.h2, x_h2)
+    end = time.time()
+    print(f"numerical elapsed: {(end - begin) * 1000} ms")
+    begin = time.time()
+    backprop_diff(t2.h2, x_h2)
+    end = time.time()
+    print(f"backprop elapsed: {(end - begin) * 1000} ms")
+    
