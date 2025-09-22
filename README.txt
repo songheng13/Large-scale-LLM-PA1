@@ -34,3 +34,19 @@ Analysis
 
 Conclusion
 Automatic differentiation matches numerical differentiation within floating-point error, confirming the correctness of the implementation.
+
+2.6
+Testing Method
+To perform the test, we construct an array [1.0, 2.0, 3.0, 4.0, 5.0] and compute its gradient under both the numerical gradient function (with epsilon equals to 1e-5) and automatic differentiation.
+
+Results
+=== numerical_diff ===
+numerical: [0. -4. 8. 48. 127.99999999]
+=== backprop_diff ===
+backprop: [0. -4. 8. 48. 128.]
+
+Analysis
+From the results, we observe that, except for the last value in the array, all other values in numerical differentiation and backpropagation are identical. The difference in the last value between these two implementations is very small (1e-08), which confirms the correctness of our numerical implementation.
+
+2.7
+From the results, we find that the time elapsed for automatic differentiation is around 0.09 ms, whereas for numerical differentiation it is around 11.16 ms, which is more than 100 times longer. Therefore, the backprop differentiation is much faster than numerical differentiation.
