@@ -1,5 +1,44 @@
 # PA1 Writeup
 
+## 1.5
+
+### Testing Method
+To test the implementation of automatic differentation given scalar inputs, I compared the results of symbolic, numercial, and automatic differentiation on functions $f_1, f_2$ and $f_3$ on the inputs $xs = [0.5, 1.0, 2.5]$. I also compared the results of numerical and automatic differention on function $f_4$ on the same scalar inputs $xs = [0.5, 1.0, 2.5]$. 
+
+Specifically for symbolic differentiation, I used the previously implemented derivatives ```df1dx, df2dx``` and ```df3dx``` for functions $f_1, f_2$ and $f_3$, respectively. For getting the numerical derivative, I ran the given method ```numerical_diff```.
+
+### Results
+
+===== At x = 0.5 =====
+|            | symbolic | numerical | automatic |
+| ---------- | -------- | --------- | --------- | 
+| $\frac{df_1}{dx}$ | 2 | 2.0000000000131024 | 2.0 |
+| $\frac{df_2}{dx}$ | 1.0 | 0.9999999999982244 | 1.0 |
+| $\frac{df_3}{dx}$ |  -0.11834319526627218 | -0.11834319526005109 | -0.11834319526627218 |
+| $\frac{df_4}{dx}$ |  | -2.804687464652566 | -2.8046874646640316 |
+
+===== At x = 1.0 =====
+
+|            | symbolic | numerical | automatic |
+| ---------- | -------- | --------- | --------- | 
+| $\frac{df_1}{dx}$ | 2 | 2.0000000000131024 | 2.0 |
+| $\frac{df_2}{dx}$ | 2.0 | 2.000000000002 | 2.0 |
+| $\frac{df_3}{dx}$ | 0.0  | 2.775557561562891e-11 | 0.0 |
+| $\frac{df_4}{dx}$ |  | -2.3499102726587395 | -2.3499102727038075
+
+===== At x = 2.5 =====
+
+|            | symbolic | numerical | automatic |
+| ---------- | -------- | --------- | --------- | 
+| $\frac{df_1}{dx}$ | 2 | 1.9999999999686933 | 2.0 |
+| $\frac{df_2}{dx}$ | 5.0 | 5.000000000032756  | 5.0 |
+| $\frac{df_3}{dx}$ | 0.48 | 0.4800000000193538 | 0.48
+| $\frac{df_4}{dx}$ |  | 0.214305259155223 | 0.2143052591764773
+
+### Observations
+Given some $x$ in test inputs $xs$, I observed that while the results of numerical differentiation were slightly off by < $10^{-8}$ from the outputs of symbolic and automatic differentiation, symbolic and automatic differentiation results were exactly identical. Since this difference is negligible, I concluded that the implementation of backpropogation and automatic differentiation is correct for scalar inputs.
+
+
 ## 2.3
 
 ### Problem
